@@ -1,6 +1,5 @@
 #include <stdint.h>
 
-/* Estrutura de diretório para o Bash */
 typedef struct {
     char name[16];
     uint32_t start_lba;
@@ -13,24 +12,21 @@ typedef struct {
 void sys_write(const char* s, int line, int col) {
     __asm__ __volatile__ ("int $0x80" : : "a"(1), "b"(s), "c"(line), "d"(col) : "memory");
 }
-
 char sys_read() {
     uint32_t c;
     __asm__ __volatile__ ("int $0x80" : "=a"(c) : "a"(2));
     return (char)c;
 }
-
-void sys_clear() {
-    __asm__ __volatile__ ("int $0x80" : : "a"(3));
-}
-
-void sys_get_dir(DirectoryEntry* dir) {
-    __asm__ __volatile__ ("int $0x80" : : "a"(4), "b"(dir));
-}
-
+void sys_clear() { __asm__ __volatile__ ("int $0x80" : : "a"(3)); }
+void sys_get_dir(DirectoryEntry* dir) { __asm__ __volatile__ ("int $0x80" : : "a"(4), "b"(dir)); }
 int sys_read_file(const char* name, char* buffer) {
     uint32_t ret;
     __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(5), "b"(name), "c"(buffer));
+    return (int)ret;
+}
+int sys_exec(const char* name) {
+    uint32_t ret;
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(6), "b"(name));
     return (int)ret;
 }
 
@@ -39,19 +35,14 @@ int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) { s1++; s2++; }
     return *(unsigned char*)s1 - *(unsigned char*)s2;
 }
-
 int strncmp(const char* s1, const char* s2, int n) {
-    while (n--) {
-        if (*s1 != *s2) return *(unsigned char*)s1 - *(unsigned char*)s2;
-        if (*s1 == 0) break;
-        s1++; s2++;
-    }
+    while (n--) { if (*s1 != *s2) return 1; if (*s1 == 0) break; s1++; s2++; }
     return 0;
 }
 
 void main() {
     sys_clear();
-    sys_write("--- COLAPSO BASH V4.0 (FULL SYSCALL INTERACTIVE) ---", 0, 15);
+    sys_write("--- COLAPSO BASH V4.2 ---", 0, 0);
     sys_write("root@colapso:# ", 2, 0);
 
     char cmd[64];
@@ -66,51 +57,50 @@ void main() {
                 cmd[idx] = '\0';
                 line++;
                 
-                if (strcmp(cmd, "help") == 0) {
-                    sys_write("Comandos: help, ls, cat <file>, clear", line++, 0);
-                }
-                else if (strcmp(cmd, "ls") == 0) {
+                if (strcmp(cmd, "ls") == 0) {
                     DirectoryEntry dir[16];
                     sys_get_dir(dir);
-                    sys_write("Arquivos no disco:", line++, 0);
+                    sys_write("Arquivos:", line++, 0);
                     for(int i=0; i<16; i++) {
                         if(dir[i].active) {
                             sys_write("- ", line, 2);
                             sys_write(dir[i].name, line++, 4);
                         }
                     }
+                } 
+                else if (strncmp(cmd, "run ", 4) == 0) {
+                    sys_write("Status: Executando...", line++, 0);
+                    sys_exec(cmd + 4);
+                    /* Nota: Após o exec retornar, precisamos pular linha */
+                    line++;
                 }
-                else if (strncmp(cmd, "cat ", 4) == 0) {
-                    char buf[512];
-                    if (sys_read_file(cmd + 4, buf)) {
-                        sys_write(buf, line++, 0);
-                    } else {
-                        sys_write("Erro: Arquivo nao encontrado.", line++, 0);
-                    }
+                else if (strcmp(cmd, "help") == 0) {
+                    sys_write("Comandos: help, ls, cat, run, clear", line++, 0);
                 }
                 else if (strcmp(cmd, "clear") == 0) {
                     sys_clear();
                     line = 0;
-                    sys_write("--- COLAPSO BASH V4.0 (FULL SYSCALL INTERACTIVE) ---", 0, 15);
+                    sys_write("--- COLAPSO BASH V4.2 ---", 0, 0);
                 }
                 else if (idx > 0) {
-                    sys_write("bash: comando nao encontrado", line++, 0);
+                    sys_write("Comando nao encontrado.", line++, 0);
                 }
 
-                if (line >= 24) { sys_clear(); line = 0; }
+                if (line >= 23) { sys_clear(); line = 0; }
                 sys_write("root@colapso:# ", line, 0);
-                col = 15; idx = 0;
+                col = 15;
+                idx = 0;
             } 
             else if (c == '\b') {
                 if (idx > 0) {
                     idx--; col--;
-                    sys_write(" ", line, col);
+                    sys_write(" ", line, col); /* Apaga na tela */
                 }
             } 
             else if (idx < 60) {
                 cmd[idx++] = c;
-                char b[2] = {c, 0};
-                sys_write(b, line, col++);
+                char buf[2] = {c, 0};
+                sys_write(buf, line, col++); /* DESENHA NA TELA (O que estava faltando!) */
             }
         }
     }

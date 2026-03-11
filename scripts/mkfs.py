@@ -1,16 +1,18 @@
 import struct
 
 def create_entry(name, lba, count, is_exec):
-    # Força exatamente 16 bytes, limpando lixo
-    name_bytes = name.encode('ascii')
-    name_field = name_bytes[:15].ljust(16, b'\x00')
+    name_field = name.encode('ascii')[:15].ljust(16, b'\x00')
     return struct.pack('16sIIII', name_field, lba, count, is_exec, 1)
 
 directory_sector = bytearray(512)
 
-# Bash no Setor 40
+# Organização do Disco:
+# LBA 40: Bash
+# LBA 60: Hello App
+# LBA 100: Root Directory
 entries = [
-    create_entry("bash.bin", 40, 10, 1) 
+    create_entry("bash.bin", 40, 10, 1),
+    create_entry("hello.bin", 60, 1, 1), 
 ]
 
 offset = 0
