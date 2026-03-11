@@ -12,6 +12,21 @@ static inline void outb(uint16_t port, uint8_t val) {
     asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
 }
 
+static void serial_write(const char* str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        outb(0x3F8, (uint8_t)str[i]);
+    }
+}
+
+static void serial_write_hex8(uint8_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+    char msg[3];
+    msg[0] = hex[(value >> 4) & 0x0F];
+    msg[1] = hex[value & 0x0F];
+    msg[2] = '\0';
+    serial_write(msg);
+}
+
 void pic_remap() {
     outb(0x20, 0x11); outb(0xA0, 0x11);
     outb(0x21, 0x20); outb(0xA1, 0x28);
@@ -42,13 +57,20 @@ void init_idt() {
     idt_set_gate(33, (uint32_t)irq1, 0x08, 0x8E);
     idt_set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
     
-    /* Syscall Interruption (int 0x80) - DPL 3 */
+    /* Syscall Interruption (int 0x80) - Gate Type 0xEE (Allow User Space Calls) */
     idt_set_gate(128, (uint32_t)isr80, 0x08, 0xEE);
 
     idt_load((uint32_t)&idt_ptr);
 }
 
-void isr_handler(struct regs *r) { (void)r; }
+void isr_handler(struct regs *r) {
+    serial_write("[EXC ");
+    serial_write_hex8((uint8_t)r->int_no);
+    serial_write("]");
+    for (;;) {
+        asm volatile ("cli; hlt");
+    }
+}
 
 void irq_handler(struct regs *r) {
     if (r->int_no == 33) {
