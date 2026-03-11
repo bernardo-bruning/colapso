@@ -20,7 +20,7 @@ start:
     ; 3. Carregar o Kernel do Disquete (Setor 2)
     mov bx, KERNEL_OFFSET
     mov ah, 0x02
-    mov al, 15 ; Ler 15 setores
+    mov al, 30 ; Lendo 30 setores (15KB)
     mov ch, 0x00
     mov dh, 0x00
     mov cl, 0x02
