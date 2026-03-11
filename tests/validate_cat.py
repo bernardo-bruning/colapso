@@ -49,19 +49,13 @@ def send_monitor_command(proc, command):
 
 
 def process_output(proc):
-    stdout = ""
-    stderr = ""
-    if proc.stdout is not None:
-        try:
-            stdout = proc.stdout.read()
-        except Exception:
-            stdout = ""
-    if proc.stderr is not None:
-        try:
-            stderr = proc.stderr.read()
-        except Exception:
-            stderr = ""
-    return stdout, stderr
+    if proc.poll() is None:
+        return "", ""
+    try:
+        stdout, stderr = proc.communicate(timeout=1)
+    except Exception:
+        return "", ""
+    return stdout or "", stderr or ""
 
 
 def main():
@@ -94,7 +88,7 @@ def main():
         deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if "root@colapso:# " in data:
+            if "root@colapso:/" in data:
                 break
             if proc.poll() is not None:
                 stdout, stderr = process_output(proc)
@@ -116,7 +110,7 @@ def main():
         deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if "root@colapso:# cat readme.txt" in data and README_TEXT in data and data.count("root@colapso:# ") >= 2:
+            if "root@colapso:/# cat readme.txt" in data and README_TEXT in data and data.count("root@colapso:/# ") >= 2:
                 print("cat validation ok")
                 return
             time.sleep(0.1)

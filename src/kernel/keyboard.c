@@ -22,7 +22,7 @@ void keyboard_handler() {
         if (scancode < sizeof(map)) {
             char key = map[scancode];
             if (key) {
-                /* Envia a tecla para o buffer de memória compartilhado do Bash */
+                /* Apenas deposita a tecla no buffer compartilhado */
                 *(volatile char*)0x9000 = key;
             }
         }

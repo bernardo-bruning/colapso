@@ -47,11 +47,11 @@ def ensure_text(data):
 
 def load_directory_entries():
     data = DIRECTORY.read_bytes()
-    if len(data) != 512:
-        raise ValidationError(f"directory.bin must be 512 bytes, got {len(data)}")
+    if len(data) != 2048:
+        raise ValidationError(f"directory.bin must be 2048 bytes, got {len(data)}")
 
     entries = []
-    for offset in range(0, 512, 32):
+    for offset in range(0, len(data), 32):
         raw = data[offset : offset + 32]
         name, start_lba, count, is_exec, active = struct.unpack("<16sIIII", raw)
         name = name.split(b"\x00", 1)[0].decode("ascii", errors="strict")
@@ -82,9 +82,39 @@ def assert_image_layout():
     entries = load_directory_entries()
     expected = {
         "bash.bin": BUILD / "bash.bin",
+        "bin": None,
         "bin/ls": BUILD / "ls.bin",
         "bin/cat": BUILD / "cat.bin",
         "bin/hello": BUILD / "hello.bin",
+        "bin/help": BUILD / "help.bin",
+        "bin/echo": BUILD / "echo.bin",
+        "bin/stat": BUILD / "stat.bin",
+        "bin/hexdump": BUILD / "hexdump.bin",
+        "bin/uname": BUILD / "uname.bin",
+        "bin/pwd": BUILD / "pwd.bin",
+        "bin/which": BUILD / "which.bin",
+        "bin/wc": BUILD / "wc.bin",
+        "bin/grep": BUILD / "grep.bin",
+        "bin/head": BUILD / "head.bin",
+        "bin/tail": BUILD / "tail.bin",
+        "bin/more": BUILD / "more.bin",
+        "bin/sleep": BUILD / "sleep.bin",
+        "bin/dmesg": BUILD / "dmesg.bin",
+        "bin/meminfo": BUILD / "meminfo.bin",
+        "bin/reboot": BUILD / "reboot.bin",
+        "bin/shutdown": BUILD / "shutdown.bin",
+        "bin/true": BUILD / "true.bin",
+        "bin/false": BUILD / "false.bin",
+        "bin/cd": BUILD / "cd.bin",
+        "bin/mkdir": BUILD / "mkdir.bin",
+        "bin/rm": BUILD / "rm.bin",
+        "bin/cp": BUILD / "cp.bin",
+        "bin/mv": BUILD / "mv.bin",
+        "bin/touch": BUILD / "touch.bin",
+        "bin/write": BUILD / "write.bin",
+        "bin/date": BUILD / "date.bin",
+        "bin/env": BUILD / "env.bin",
+        "bin/edit": BUILD / "edit.bin",
         "README.txt": ROOT / "README.txt",
     }
 
@@ -93,6 +123,8 @@ def assert_image_layout():
 
     for entry in entries:
         binary_path = expected[entry["name"]]
+        if binary_path is None:
+            continue
         binary = binary_path.read_bytes()
         sectors_needed = sector_count_for_size(len(binary))
         if sectors_needed > entry["sector_count"]:

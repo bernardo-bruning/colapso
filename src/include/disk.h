@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define DIRECTORY_ENTRY_COUNT 64
+#define DIRECTORY_SECTOR_COUNT 4
+
 /* Entrada de Diretório (32 bytes) */
 typedef struct {
     char name[16];
@@ -13,5 +16,6 @@ typedef struct {
 } DirectoryEntry;
 
 void read_sectors_ATA_PIO(uint32_t target_address, uint32_t LBA, uint8_t sector_count);
+void write_sectors_ATA_PIO(uint32_t source_address, uint32_t LBA, uint8_t sector_count);
 
 #endif

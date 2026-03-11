@@ -28,6 +28,10 @@ static inline uint16_t inw(uint16_t port) {
     return ret;
 }
 
+static inline void outw(uint16_t port, uint16_t val) {
+    __asm__ __volatile__ ("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
 /* Espera o disco terminar operações pendentes */
 static void ata_wait() {
     inb(0x3F6); inb(0x3F6); inb(0x3F6); inb(0x3F6);
@@ -55,6 +59,28 @@ void read_sectors_ATA_PIO(uint32_t target_address, uint32_t LBA, uint8_t sector_
         for (int j = 0; j < 256; j++) {
             buffer[j] = inw(ATA_DATA);
         }
+        buffer += 256;
+    }
+}
+
+void write_sectors_ATA_PIO(uint32_t source_address, uint32_t LBA, uint8_t sector_count) {
+    while (inb(ATA_STATUS) & 0x80);
+
+    outb(ATA_DRIVE_SEL, 0xE0 | ((LBA >> 24) & 0x0F));
+    outb(ATA_SECCOUNT, sector_count);
+    outb(ATA_LBA_LOW,  (uint8_t)LBA);
+    outb(ATA_LBA_MID,  (uint8_t)(LBA >> 8));
+    outb(ATA_LBA_HIGH, (uint8_t)(LBA >> 16));
+    outb(ATA_COMMAND,  0x30);
+
+    uint16_t *buffer = (uint16_t*) source_address;
+
+    for (int i = 0; i < sector_count; i++) {
+        ata_wait_ready();
+        for (int j = 0; j < 256; j++) {
+            outw(ATA_DATA, buffer[j]);
+        }
+        ata_wait();
         buffer += 256;
     }
 }

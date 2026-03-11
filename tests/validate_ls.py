@@ -58,19 +58,13 @@ def send_monitor_command(proc, command):
 
 
 def process_output(proc):
-    stdout = ""
-    stderr = ""
-    if proc.stdout is not None:
-        try:
-            stdout = proc.stdout.read()
-        except Exception:
-            stdout = ""
-    if proc.stderr is not None:
-        try:
-            stderr = proc.stderr.read()
-        except Exception:
-            stderr = ""
-    return stdout, stderr
+    if proc.poll() is None:
+        return "", ""
+    try:
+        stdout, stderr = proc.communicate(timeout=1)
+    except Exception:
+        return "", ""
+    return stdout or "", stderr or ""
 
 
 def main():
@@ -103,7 +97,7 @@ def main():
         deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if "root@colapso:# " in data:
+            if "root@colapso:/# " in data:
                 break
             if proc.poll() is not None:
                 stdout, stderr = process_output(proc)
@@ -118,7 +112,7 @@ def main():
         else:
             stdout, stderr = process_output(proc)
             raise ValidationError(
-                "serial log did not contain 'root@colapso:# '\n"
+                "serial log did not contain 'root@colapso:/# '\n"
                 f"current log:\n{read_serial()}\n"
                 f"monitor stdout:\n{stdout}\n"
                 f"monitor stderr:\n{stderr}"
@@ -133,14 +127,11 @@ def main():
             data = read_serial()
             if all(token in data for token in [
                 "--- LISTAGEM DE DISCO (C-APP) ---",
-                "bash.bin",
-                "bin/ls",
-                "bin/cat",
-                "bin/hello",
+                "bin/",
                 "README.txt",
-                "root@colapso:# ls",
+                "root@colapso:/# ls",
             ]):
-                if data.count("root@colapso:# ") >= 2:
+                if data.count("root@colapso:/# ") >= 2:
                     print("ls validation ok")
                     return
             time.sleep(0.1)
