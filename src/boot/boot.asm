@@ -13,11 +13,16 @@ start:
     mov sp, 0x7c00
     mov [BOOT_DRIVE], dl
 
+    ; Serial Debug: Write 'B'
+    mov dx, 0x3f8
+    mov al, 'B'
+    out dx, al
+
     ; 2. Limpar a tela (BIOS)
     mov ax, 0x0003
     int 0x10
 
-    ; 3. Carregar o Kernel do Disquete (Setor 2)
+    ; 3. Carregar o Kernel do HD (Setor 2)
     mov bx, KERNEL_OFFSET
     mov ah, 0x02
     mov al, 30 ; Lendo 30 setores (15KB)
@@ -27,6 +32,11 @@ start:
     mov dl, [BOOT_DRIVE]
     int 0x13
     jc disk_error
+
+    ; Serial Debug: Write 'K'
+    mov dx, 0x3f8
+    mov al, 'K'
+    out dx, al
 
     ; 4. Ativar A20
     in al, 0x92

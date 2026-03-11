@@ -3,16 +3,23 @@
 
 #include <stdint.h>
 
-/* Estrutura de um portão da IDT (Interrupt Gate) */
-struct idt_entry_struct {
-    uint16_t base_low;  /* Os 16 bits inferiores do endereço da ISR */
-    uint16_t sel;       /* Seletor de segmento de código (GDT) */
-    uint8_t  always0;   /* Sempre zero */
-    uint8_t  flags;     /* Flags (P, DPL, Type) */
-    uint16_t base_high; /* Os 16 bits superiores do endereço da ISR */
+/* Registradores passados pelo Assembly */
+struct regs {
+    uint32_t ds;
+    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    uint32_t int_no, err_code;
+    uint32_t eip, cs, eflags, useresp, ss;
 } __attribute__((packed));
 
-/* Estrutura do ponteiro da IDT para o comando 'lidt' */
+/* Estrutura de um portão da IDT (Interrupt Gate) */
+struct idt_entry_struct {
+    uint16_t base_low;
+    uint16_t sel;
+    uint8_t  always0;
+    uint8_t  flags;
+    uint16_t base_high;
+} __attribute__((packed));
+
 struct idt_ptr_struct {
     uint16_t limit;
     uint32_t base;
@@ -21,10 +28,7 @@ struct idt_ptr_struct {
 typedef struct idt_entry_struct idt_entry_t;
 typedef struct idt_ptr_struct idt_ptr_t;
 
-/* Inicializa a IDT */
 void init_idt();
-
-/* Define um portão na IDT */
 void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 
 #endif

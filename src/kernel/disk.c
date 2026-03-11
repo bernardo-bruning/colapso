@@ -1,52 +1,60 @@
 #include <stdint.h>
 #include <disk.h>
 
+/* Portas do Controlador ATA Primário */
+#define ATA_DATA        0x1F0
+#define ATA_SECCOUNT    0x1F2
+#define ATA_LBA_LOW     0x1F3
+#define ATA_LBA_MID     0x1F4
+#define ATA_LBA_HIGH    0x1F5
+#define ATA_DRIVE_SEL   0x1F6
+#define ATA_COMMAND     0x1F7
+#define ATA_STATUS      0x1F7
+
+/* Implementação Robusta de I/O */
 static inline void outb(uint16_t port, uint8_t val) {
-    asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+    __asm__ __volatile__ ("outb %0, %1" : : "a"(val), "Nd"(port));
 }
 
 static inline uint8_t inb(uint16_t port) {
     uint8_t ret;
-    asm volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
+    __asm__ __volatile__ ("inb %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
 static inline uint16_t inw(uint16_t port) {
     uint16_t ret;
-    asm volatile ( "inw %1, %0" : "=a"(ret) : "Nd"(port) );
+    __asm__ __volatile__ ("inw %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
-/* Espera com timeout simples */
-static void ATA_wait_BSY() {
-    uint32_t timeout = 1000000;
-    while((inb(0x1F7) & 0x80) && timeout--);
+/* Espera o disco terminar operações pendentes */
+static void ata_wait() {
+    inb(0x3F6); inb(0x3F6); inb(0x3F6); inb(0x3F6);
 }
 
-static void ATA_wait_DRQ() {
-    uint32_t timeout = 1000000;
-    while(!(inb(0x1F7) & 0x08) && timeout--);
+static void ata_wait_ready() {
+    while (inb(ATA_STATUS) & 0x80); /* BSY bit */
+    while (!(inb(ATA_STATUS) & 0x08)); /* DRQ bit */
 }
 
 void read_sectors_ATA_PIO(uint32_t target_address, uint32_t LBA, uint8_t sector_count) {
-    ATA_wait_BSY();
+    while (inb(ATA_STATUS) & 0x80); /* Espera não estar ocupado */
 
-    outb(0x1F6, 0xE0 | ((LBA >> 24) & 0x0F));
-    outb(0x1F2, sector_count);
-    outb(0x1F3, (uint8_t) LBA);
-    outb(0x1F4, (uint8_t)(LBA >> 8));
-    outb(0x1F5, (uint8_t)(LBA >> 16));
-    outb(0x1F7, 0x20); /* Comando Read */
+    outb(ATA_DRIVE_SEL, 0xE0 | ((LBA >> 24) & 0x0F));
+    outb(ATA_SECCOUNT, sector_count);
+    outb(ATA_LBA_LOW,  (uint8_t)LBA);
+    outb(ATA_LBA_MID,  (uint8_t)(LBA >> 8));
+    outb(ATA_LBA_HIGH, (uint8_t)(LBA >> 16));
+    outb(ATA_COMMAND,  0x20); /* Command: READ */
 
-    uint16_t *target = (uint16_t*) target_address;
+    uint16_t *buffer = (uint16_t*) target_address;
 
-    for (int j = 0; j < sector_count; j++) {
-        ATA_wait_BSY();
-        ATA_wait_DRQ();
-
-        for(int i = 0; i < 256; i++) {
-            target[i] = inw(0x1F0);
+    for (int i = 0; i < sector_count; i++) {
+        ata_wait_ready();
+        for (int j = 0; j < 256; j++) {
+            buffer[j] = inw(ATA_DATA);
         }
-        target += 256;
+        buffer += 256;
     }
 }
