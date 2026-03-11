@@ -1,4 +1,4 @@
-# Makefile para o Colapso OS V5.0 (Unix-like Structure)
+# Makefile para o Colapso OS
 
 AS = nasm
 CC = gcc
@@ -50,7 +50,7 @@ APP_ENTRY = build/app_entry.o
 
 all: $(IMG)
 
-$(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(CAT_BIN) $(HELLO_BIN) $(HELP_BIN) $(ECHO_BIN) $(STAT_BIN) $(HEXDUMP_BIN) $(UNAME_BIN) $(PWD_BIN) $(WHICH_BIN) $(WC_BIN) $(GREP_BIN) $(HEAD_BIN) $(TAIL_BIN) $(MORE_BIN) $(SLEEP_BIN) $(DMESG_BIN) $(MEMINFO_BIN) $(REBOOT_BIN) $(SHUTDOWN_BIN) $(TRUE_BIN) $(FALSE_BIN) $(CD_BIN) $(MKDIR_BIN) $(RM_BIN) $(CP_BIN) $(MV_BIN) $(TOUCH_BIN) $(WRITE_BIN) $(DATE_BIN) $(ENV_BIN) $(EDIT_BIN) README.txt scripts/mkfs.py
+$(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(CAT_BIN) $(HELLO_BIN) $(HELP_BIN) $(ECHO_BIN) $(STAT_BIN) $(HEXDUMP_BIN) $(UNAME_BIN) $(PWD_BIN) $(WHICH_BIN) $(WC_BIN) $(GREP_BIN) $(HEAD_BIN) $(TAIL_BIN) $(MORE_BIN) $(SLEEP_BIN) $(DMESG_BIN) $(MEMINFO_BIN) $(REBOOT_BIN) $(SHUTDOWN_BIN) $(TRUE_BIN) $(FALSE_BIN) $(CD_BIN) $(MKDIR_BIN) $(RM_BIN) $(CP_BIN) $(MV_BIN) $(TOUCH_BIN) $(WRITE_BIN) $(DATE_BIN) $(ENV_BIN) $(EDIT_BIN) MANUAL.txt scripts/mkfs.py
 	mkdir -p build
 	python3 scripts/mkfs.py
 	cat $(BOOT_BIN) $(KERNEL_BIN) > build/temp.bin
@@ -90,7 +90,7 @@ $(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(CAT_BIN) $(HELLO_BIN) 
 	dd if=$(DATE_BIN) of=$(IMG) bs=512 seek=380 conv=notrunc
 	dd if=$(ENV_BIN) of=$(IMG) bs=512 seek=390 conv=notrunc
 	dd if=$(EDIT_BIN) of=$(IMG) bs=512 seek=400 conv=notrunc
-	dd if=README.txt of=$(IMG) bs=512 seek=90 conv=notrunc
+	dd if=MANUAL.txt of=$(IMG) bs=512 seek=90 conv=notrunc
 	rm build/temp.bin
 
 $(BOOT_BIN): src/boot/boot.asm src/boot/gdt.asm

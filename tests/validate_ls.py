@@ -128,7 +128,7 @@ def main():
             if all(token in data for token in [
                 "--- LISTAGEM DE DISCO (C-APP) ---",
                 "bin/",
-                "README.txt",
+                "MANUAL.txt",
                 "root@colapso:/# ls",
             ]):
                 if data.count("root@colapso:/# ") >= 2:

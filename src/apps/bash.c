@@ -108,7 +108,7 @@ void main() {
     int idx = 0;
 
     clear_screen();
-    stdout_write("BASH V5.6: COMANDOS ATIVOS\n");
+    stdout_write("BASH 0.1: COMANDOS ATIVOS\n");
     print_prompt(cwd);
 
     while (1) {
@@ -131,7 +131,7 @@ void main() {
 
             if (strcmp(command, "clear") == 0) {
                 clear_screen();
-                stdout_write("BASH V5.6: COMANDOS ATIVOS\n");
+                stdout_write("BASH 0.1: COMANDOS ATIVOS\n");
             }
             else if (strcmp(command, "cd") == 0) {
                 char path[64];

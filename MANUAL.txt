@@ -1,0 +1,5 @@
+Colapso OS 0.1
+===============
+
+Este arquivo valida a syscall de leitura de arquivos.
+Use o comando `cat manual.txt` para exibir este texto.

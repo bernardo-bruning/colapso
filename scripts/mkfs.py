@@ -42,7 +42,7 @@ entries = [
     create_entry("bin/date", 380, 2, 1),
     create_entry("bin/env", 390, 2, 1),
     create_entry("bin/edit", 400, 2, 1),
-    create_entry("README.txt", 90, 1, 0),
+    create_entry("MANUAL.txt", 90, 1, 0),
 ]
 
 offset = 0

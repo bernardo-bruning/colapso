@@ -9,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build"
 IMAGE = BUILD / "colapso.img"
 SERIAL_LOG = BUILD / "cat-serial.log"
-README_TEXT = (ROOT / "README.txt").read_text()
+MANUAL_TEXT = (ROOT / "MANUAL.txt").read_text()
 
 
 class ValidationError(Exception):
@@ -103,14 +103,14 @@ def main():
         else:
             raise ValidationError(f"serial log did not contain shell prompt\nserial log:\n{read_serial()}")
 
-        for key in ["c", "a", "t", "spc", "r", "e", "a", "d", "m", "e", "dot", "t", "x", "t"]:
+        for key in ["c", "a", "t", "spc", "m", "a", "n", "u", "a", "l", "dot", "t", "x", "t"]:
             send_monitor_command(proc, f"sendkey {key}")
         send_monitor_command(proc, "sendkey ret")
 
         deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if "root@colapso:/# cat readme.txt" in data and README_TEXT in data and data.count("root@colapso:/# ") >= 2:
+            if "root@colapso:/# cat manual.txt" in data and MANUAL_TEXT in data and data.count("root@colapso:/# ") >= 2:
                 print("cat validation ok")
                 return
             time.sleep(0.1)

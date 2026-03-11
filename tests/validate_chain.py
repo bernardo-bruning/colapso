@@ -115,7 +115,7 @@ def assert_image_layout():
         "bin/date": BUILD / "date.bin",
         "bin/env": BUILD / "env.bin",
         "bin/edit": BUILD / "edit.bin",
-        "README.txt": ROOT / "README.txt",
+        "MANUAL.txt": ROOT / "MANUAL.txt",
     }
 
     if {entry["name"] for entry in entries} != set(expected):

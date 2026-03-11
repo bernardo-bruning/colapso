@@ -2,6 +2,8 @@
 
 O **Colapso OS** é um sistema operacional minimalista escrito em Assembly e C, projetado para rodar na arquitetura x86 de 32 bits. Este projeto foca na compreensão profunda do hardware, gerenciamento de memória e transição entre modos de operação do processador.
 
+![Screenshot do Colapso OS](docs/assets/readme-clipboard.png)
+
 ## 🚀 Status Atual: Kernel Space Active
 O sistema já realiza o boot completo, faz a transição para Modo Protegido e executa um Kernel em C com driver de vídeo VGA básico.
 
@@ -15,6 +17,7 @@ O sistema já realiza o boot completo, faz a transição para Modo Protegido e e
 ## 📁 Estrutura do Projeto
 ```text
 colapso/
+├── docs/                 # Documentação completa do sistema
 ├── src/
 │   ├── boot/
 │   │   ├── boot.asm      # Bootloader (MBR + Transição 16->32 bit)
@@ -27,6 +30,8 @@ colapso/
 ├── build/                # Binários gerados (ignorado pelo git)
 └── Makefile              # Automação de compilação e execução
 ```
+
+Para mais detalhes, consulte a [**Documentação do Sistema**](docs/index.md).
 
 ## 🛠️ Requisitos
 - **Compilador:** `gcc` (com suporte a `-m32`).
