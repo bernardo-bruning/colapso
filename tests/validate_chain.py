@@ -83,7 +83,9 @@ def assert_image_layout():
     expected = {
         "bash.bin": BUILD / "bash.bin",
         "bin/ls": BUILD / "ls.bin",
+        "bin/cat": BUILD / "cat.bin",
         "bin/hello": BUILD / "hello.bin",
+        "README.txt": ROOT / "README.txt",
     }
 
     if {entry["name"] for entry in entries} != set(expected):

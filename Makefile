@@ -12,6 +12,7 @@ KERNEL_BIN = build/kernel.bin
 BOOT_BIN = build/boot.bin
 BASH_BIN = build/bash.bin
 LS_BIN = build/ls.bin
+CAT_BIN = build/cat.bin
 HELLO_BIN = build/hello.bin
 
 KERNEL_OBJS = build/kernel_entry.o build/interrupts.o build/kernel.o build/idt.o build/keyboard.o build/disk.o build/syscall.o
@@ -20,7 +21,7 @@ APP_ENTRY = build/app_entry.o
 
 all: $(IMG)
 
-$(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(HELLO_BIN) scripts/mkfs.py
+$(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(CAT_BIN) $(HELLO_BIN) README.txt scripts/mkfs.py
 	mkdir -p build
 	python3 scripts/mkfs.py
 	cat $(BOOT_BIN) $(KERNEL_BIN) > build/temp.bin
@@ -29,7 +30,9 @@ $(IMG): $(BOOT_BIN) $(KERNEL_BIN) $(BASH_BIN) $(LS_BIN) $(HELLO_BIN) scripts/mkf
 	dd if=build/directory.bin of=$(IMG) bs=512 seek=100 conv=notrunc
 	dd if=$(BASH_BIN) of=$(IMG) bs=512 seek=200 conv=notrunc
 	dd if=$(LS_BIN) of=$(IMG) bs=512 seek=60 conv=notrunc
+	dd if=$(CAT_BIN) of=$(IMG) bs=512 seek=80 conv=notrunc
 	dd if=$(HELLO_BIN) of=$(IMG) bs=512 seek=70 conv=notrunc
+	dd if=README.txt of=$(IMG) bs=512 seek=90 conv=notrunc
 	rm build/temp.bin
 
 $(BOOT_BIN): src/boot/boot.asm src/boot/gdt.asm
@@ -44,6 +47,12 @@ build/ls.o: src/apps/ls.c
 
 $(LS_BIN): $(APP_ENTRY) build/ls.o scripts/app.ld
 	$(LD) -m elf_i386 -T scripts/app.ld $(APP_ENTRY) build/ls.o -o $@
+
+build/cat.o: src/apps/cat.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(CAT_BIN): $(APP_ENTRY) build/cat.o scripts/app.ld
+	$(LD) -m elf_i386 -T scripts/app.ld $(APP_ENTRY) build/cat.o -o $@
 
 $(HELLO_BIN): src/apps/hello.asm
 	$(AS) -f bin src/apps/hello.asm -o $@
@@ -96,3 +105,4 @@ run-vnc: stop all
 test: all
 	python3 tests/validate_chain.py
 	python3 tests/validate_ls.py
+	python3 tests/validate_cat.py

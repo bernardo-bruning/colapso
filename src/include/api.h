@@ -12,17 +12,17 @@ typedef struct {
 } DirectoryEntry;
 
 /* Wrappers de Syscalls para C */
-static inline void print(const char* s, int line, int col) {
-    __asm__ __volatile__ ("int $0x80" : : "a"(1), "b"(s), "c"(line), "d"(col) : "memory");
+static inline void stdout_write(const char* s) {
+    __asm__ __volatile__ ("int $0x80" : : "a"(1), "b"(s) : "memory");
 }
 
-static inline char read_key() {
+static inline char stdin_read() {
     uint32_t c;
     __asm__ __volatile__ ("int $0x80" : "=a"(c) : "a"(2));
     return (char)c;
 }
 
-static inline void clear() {
+static inline void clear_screen() {
     __asm__ __volatile__ ("int $0x80" : : "a"(3));
 }
 
@@ -40,7 +40,6 @@ static inline void exit_app() {
     __asm__ __volatile__ ("int $0x80" : : "a"(7));
 }
 
-/* Memória de Argumentos (Passados pelo Bash) */
 #define ARG_BUFFER ((char*)0x9500)
 
 #endif

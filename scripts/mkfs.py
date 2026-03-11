@@ -6,13 +6,13 @@ def create_entry(name, lba, count, is_exec):
 
 directory_sector = bytearray(512)
 
-# Organização do Disco:
-# LBA 40: Bash
-# LBA 60: Hello App
-# LBA 100: Root Directory
+# Bash no Setor 200
 entries = [
-    create_entry("bash.bin", 40, 10, 1),
-    create_entry("hello.bin", 60, 1, 1), 
+    create_entry("bash.bin", 200, 10, 1),
+    create_entry("bin/ls", 60, 2, 1),
+    create_entry("bin/cat", 80, 2, 1),
+    create_entry("bin/hello", 70, 2, 1),
+    create_entry("README.txt", 90, 1, 0),
 ]
 
 offset = 0

@@ -8,7 +8,8 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build"
 IMAGE = BUILD / "colapso.img"
-SERIAL_LOG = BUILD / "ls-serial.log"
+SERIAL_LOG = BUILD / "cat-serial.log"
+README_TEXT = (ROOT / "README.txt").read_text()
 
 
 class ValidationError(Exception):
@@ -37,16 +38,6 @@ def read_serial():
     if not SERIAL_LOG.exists():
         return ""
     return SERIAL_LOG.read_text(errors="replace")
-
-
-def wait_for_serial_text(expected, timeout):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        data = read_serial()
-        if expected in data:
-            return data
-        time.sleep(0.1)
-    raise ValidationError(f"serial log did not contain {expected!r}\ncurrent log:\n{read_serial()}")
 
 
 def send_monitor_command(proc, command):
@@ -116,36 +107,21 @@ def main():
                 )
             time.sleep(0.1)
         else:
-            stdout, stderr = process_output(proc)
-            raise ValidationError(
-                "serial log did not contain 'root@colapso:# '\n"
-                f"current log:\n{read_serial()}\n"
-                f"monitor stdout:\n{stdout}\n"
-                f"monitor stderr:\n{stderr}"
-            )
+            raise ValidationError(f"serial log did not contain shell prompt\nserial log:\n{read_serial()}")
 
-        send_monitor_command(proc, "sendkey l")
-        send_monitor_command(proc, "sendkey s")
+        for key in ["c", "a", "t", "spc", "r", "e", "a", "d", "m", "e", "dot", "t", "x", "t"]:
+            send_monitor_command(proc, f"sendkey {key}")
         send_monitor_command(proc, "sendkey ret")
 
         deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if all(token in data for token in [
-                "--- LISTAGEM DE DISCO (C-APP) ---",
-                "bash.bin",
-                "bin/ls",
-                "bin/cat",
-                "bin/hello",
-                "README.txt",
-                "root@colapso:# ls",
-            ]):
-                if data.count("root@colapso:# ") >= 2:
-                    print("ls validation ok")
-                    return
+            if "root@colapso:# cat readme.txt" in data and README_TEXT in data and data.count("root@colapso:# ") >= 2:
+                print("cat validation ok")
+                return
             time.sleep(0.1)
 
-        raise ValidationError(f"ls output not found in serial log\nserial log:\n{read_serial()}")
+        raise ValidationError(f"cat output not found in serial log\nserial log:\n{read_serial()}")
     finally:
         try:
             send_monitor_command(proc, "quit")

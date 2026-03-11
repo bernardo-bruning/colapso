@@ -1,20 +1,4 @@
-#include <stdint.h>
-
-/* Wrappers de Syscalls */
-void sys_write(const char* s, int line, int col) {
-    __asm__ __volatile__ ("int $0x80" : : "a"(1), "b"(s), "c"(line), "d"(col) : "memory");
-}
-char sys_read() {
-    uint32_t c;
-    __asm__ __volatile__ ("int $0x80" : "=a"(c) : "a"(2));
-    return (char)c;
-}
-void sys_clear() { __asm__ __volatile__ ("int $0x80" : : "a"(3)); }
-int sys_exec(const char* name) {
-    uint32_t ret;
-    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(6), "b"(name));
-    return (int)ret;
-}
+#include <api.h>
 
 void run_loaded_app() {
     void (*app_entry)() = (void (*)())0x40000;
@@ -27,57 +11,84 @@ int strcmp(const char* s1, const char* s2) {
     return *(unsigned char*)s1 - *(unsigned char*)s2;
 }
 
+static int sys_exec(const char* name) {
+    uint32_t ret;
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(6), "b"(name));
+    return (int)ret;
+}
+
+static void clear_args(void) {
+    for (int i = 0; i < 128; i++) ARG_BUFFER[i] = '\0';
+}
+
+static void set_args(const char* args) {
+    int i = 0;
+    while (args[i] != '\0' && i < 127) {
+        ARG_BUFFER[i] = args[i];
+        i++;
+    }
+    ARG_BUFFER[i] = '\0';
+}
+
+static void print_prompt(void) {
+    stdout_write("root@colapso:# ");
+}
+
 void main() {
-    sys_clear();
-    sys_write("BASH V5.6: COMANDOS ATIVOS", 0, 0);
-    sys_write("root@colapso:# ", 2, 0);
+    clear_screen();
+    stdout_write("BASH V5.6: COMANDOS ATIVOS\n");
+    print_prompt();
 
     char cmd[64];
     int idx = 0;
-    int col = 15;
-    int line = 2;
 
     while (1) {
-        char c = sys_read();
+        char c = stdin_read();
         if (c != 0) {
             if (c == '\n') {
                 cmd[idx] = '\0';
-                line++;
+                stdout_write("\n");
                 
                 if (strcmp(cmd, "clear") == 0) {
-                    sys_clear();
-                    line = 0;
-                    sys_write("BASH V5.6: COMANDOS ATIVOS", 0, 0);
+                    clear_screen();
+                    stdout_write("BASH V5.6: COMANDOS ATIVOS\n");
                 } 
                 else if (idx > 0) {
-                    /* Tenta rodar bin/comando */
+                    char* args = cmd;
                     char b[32] = "bin/";
-                    char* p = b + 4; char* s = cmd;
-                    while((*p++ = *s++));
+                    char* p = b + 4;
+                    while (*args != '\0' && *args != ' ') {
+                        *p++ = *args++;
+                    }
+                    *p = '\0';
+
+                    if (*args == ' ') {
+                        while (*args == ' ') args++;
+                        set_args(args);
+                    } else {
+                        clear_args();
+                    }
                     
                     if (!sys_exec(b)) {
-                        sys_write("bash: comando nao encontrado", line++, 0);
+                        stdout_write("bash: comando nao encontrado\n");
                     } else {
                         run_loaded_app();
-                        line++; /* Programa rodou e voltou */
                     }
                 }
 
-                if (line >= 23) { sys_clear(); line = 0; }
-                sys_write("root@colapso:# ", line, 0);
-                col = 15;
+                print_prompt();
                 idx = 0;
             } 
             else if (c == '\b') {
                 if (idx > 0) {
-                    idx--; col--;
-                    sys_write(" ", line, col);
+                    idx--;
+                    stdout_write("\b \b");
                 }
             } 
             else if (idx < 60) {
                 cmd[idx++] = c;
                 char buf[2] = {c, '\0'};
-                sys_write(buf, line, col++);
+                stdout_write(buf);
             }
         }
     }
