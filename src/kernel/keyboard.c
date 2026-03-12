@@ -1,6 +1,11 @@
 #include <stdint.h>
 
 #define KEYBOARD_DATA_PORT 0x60
+#define KEYBOARD_BUFFER_SIZE 256
+
+volatile char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
+volatile uint32_t keyboard_buffer_head;
+volatile uint32_t keyboard_buffer_tail;
 
 static inline uint8_t inb(uint16_t port) {
     uint8_t ret;
@@ -22,8 +27,11 @@ void keyboard_handler() {
         if (scancode < sizeof(map)) {
             char key = map[scancode];
             if (key) {
-                /* Apenas deposita a tecla no buffer compartilhado */
-                *(volatile char*)0x9000 = key;
+                uint32_t next_head = (keyboard_buffer_head + 1) % KEYBOARD_BUFFER_SIZE;
+                if (next_head != keyboard_buffer_tail) {
+                    keyboard_buffer[keyboard_buffer_head] = key;
+                    keyboard_buffer_head = next_head;
+                }
             }
         }
     }

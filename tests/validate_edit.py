@@ -8,8 +8,6 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build"
 IMAGE = BUILD / "colapso.img"
-SERIAL_LOG = BUILD / "cat-serial.log"
-MANUAL_TEXT = (ROOT / "MANUAL.txt").read_text()
 
 
 class ValidationError(Exception):
@@ -34,12 +32,6 @@ def run(cmd, *, timeout=None):
     return result
 
 
-def read_serial():
-    if not SERIAL_LOG.exists():
-        return ""
-    return SERIAL_LOG.read_text(errors="replace")
-
-
 def send_monitor_command(proc, command):
     if proc.stdin is None:
         raise ValidationError("qemu monitor stdin is unavailable")
@@ -48,35 +40,29 @@ def send_monitor_command(proc, command):
     time.sleep(0.1)
 
 
-def process_output(proc):
-    if proc.poll() is None:
-        return "", ""
-    try:
-        stdout, stderr = proc.communicate(timeout=1)
-    except Exception:
-        return "", ""
-    return stdout or "", stderr or ""
+def type_text(proc, text):
+    keymap = {" ": "spc", ".": "dot", ",": "comma"}
+    for ch in text:
+        send_monitor_command(proc, f"sendkey {keymap.get(ch, ch)}")
 
 
-def main():
-    run(["make", "all"], timeout=30)
-    SERIAL_LOG.unlink(missing_ok=True)
-
-    cmd = [
-        "qemu-system-i386",
-        "-drive",
-        f"file={IMAGE},format=raw",
-        "-display",
-        "none",
-        "-serial",
-        f"file:{SERIAL_LOG}",
-        "-monitor",
-        "stdio",
-        "-no-reboot",
-    ]
+def run_session(commands, expected_tokens, serial_name):
+    serial_log = BUILD / serial_name
+    serial_log.unlink(missing_ok=True)
 
     proc = subprocess.Popen(
-        cmd,
+        [
+            "qemu-system-i386",
+            "-drive",
+            f"file={IMAGE},format=raw",
+            "-display",
+            "none",
+            "-serial",
+            f"file:{serial_log}",
+            "-monitor",
+            "stdio",
+            "-no-reboot",
+        ],
         cwd=ROOT,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -84,38 +70,32 @@ def main():
         text=True,
     )
 
+    def read_serial():
+        if not serial_log.exists():
+            return ""
+        return serial_log.read_text(errors="replace")
+
     try:
         deadline = time.time() + 5
         while time.time() < deadline:
-            data = read_serial()
-            if "root@colapso:/" in data:
+            if "root@colapso:/" in read_serial():
                 break
-            if proc.poll() is not None:
-                stdout, stderr = process_output(proc)
-                raise ValidationError(
-                    "qemu exited before the shell prompt appeared\n"
-                    f"exit={proc.returncode}\n"
-                    f"serial log:\n{data}\n"
-                    f"monitor stdout:\n{stdout}\n"
-                    f"monitor stderr:\n{stderr}"
-                )
             time.sleep(0.1)
         else:
-            raise ValidationError(f"serial log did not contain shell prompt\nserial log:\n{read_serial()}")
+            raise ValidationError(f"shell prompt not found\nserial log:\n{read_serial()}")
 
-        for key in ["c", "a", "t", "spc", "m", "a", "n", "u", "a", "l", "dot", "t", "x", "t"]:
-            send_monitor_command(proc, f"sendkey {key}")
-        send_monitor_command(proc, "sendkey ret")
+        for command in commands:
+            type_text(proc, command)
+            send_monitor_command(proc, "sendkey ret")
 
-        deadline = time.time() + 10
+        deadline = time.time() + 5
         while time.time() < deadline:
             data = read_serial()
-            if "root@colapso:/# cat manual.txt" in data and MANUAL_TEXT in data and data.count("root@colapso:/# ") >= 2:
-                print("cat validation ok")
+            if all(token in data for token in expected_tokens):
                 return
             time.sleep(0.1)
 
-        raise ValidationError(f"cat output not found in serial log\nserial log:\n{read_serial()}")
+        raise ValidationError(f"edit output not found in serial log\nserial log:\n{read_serial()}")
     finally:
         try:
             send_monitor_command(proc, "quit")
@@ -131,6 +111,28 @@ def main():
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=2)
+
+
+def main():
+    run(["make", "all"], timeout=30)
+
+    run_session(
+        ["edit manual.txt", "1p", "2p", "1,2n", "q"],
+        [
+            "root@colapso:/# edit manual.txt",
+            "141",
+            "1p",
+            "Colapso OS 0.1",
+            "2p",
+            "===============",
+            "1,2n",
+            "1\tColapso OS 0.1",
+            "2\t===============",
+        ],
+        "edit-existing-serial.log",
+    )
+
+    print("edit validation ok")
 
 
 if __name__ == "__main__":

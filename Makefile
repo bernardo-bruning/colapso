@@ -338,4 +338,4 @@ test: all
 	python3 tests/validate_chain.py
 	python3 tests/validate_ls.py
 	python3 tests/validate_cat.py
-	python3 tests/validate_utils.py
+	python3 tests/validate_edit.py

@@ -11,7 +11,7 @@ static inline void stdout_write(const char* s) {
 
 static inline char stdin_read() {
     uint32_t c;
-    __asm__ __volatile__ ("int $0x80" : "=a"(c) : "a"(2));
+    __asm__ __volatile__ ("int $0x80" : "=a"(c) : "a"(2) : "memory");
     return (char)c;
 }
 
@@ -20,12 +20,12 @@ static inline void clear_screen() {
 }
 
 static inline void get_dir(DirectoryEntry* dir) {
-    __asm__ __volatile__ ("int $0x80" : : "a"(4), "b"(dir));
+    __asm__ __volatile__ ("int $0x80" : : "a"(4), "b"(dir) : "memory");
 }
 
 static inline int read_file(const char* name, char* buffer) {
     uint32_t ret;
-    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(5), "b"(name), "c"(buffer));
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(5), "b"(name), "c"(buffer) : "memory");
     return (int)ret;
 }
 
@@ -35,19 +35,19 @@ static inline void exit_app() {
 
 static inline int create_file(const char* name) {
     uint32_t ret;
-    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(11), "b"(name));
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(11), "b"(name) : "memory");
     return (int)ret;
 }
 
 static inline int write_file(const char* name, const char* content) {
     uint32_t ret;
-    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(12), "b"(name), "c"(content));
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(12), "b"(name), "c"(content) : "memory");
     return (int)ret;
 }
 
 static inline int create_dir(const char* name) {
     uint32_t ret;
-    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(13), "b"(name));
+    __asm__ __volatile__ ("int $0x80" : "=a"(ret) : "a"(13), "b"(name) : "memory");
     return (int)ret;
 }
 

@@ -6,10 +6,15 @@
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define COM1_PORT 0x3F8
+#define VGA_CRTC_INDEX 0x3D4
+#define VGA_CRTC_DATA 0x3D5
 #define KLOG_SIZE 4096
 #define DATA_LBA_START 500
 
 extern DirectoryEntry root_directory[DIRECTORY_ENTRY_COUNT];
+extern volatile char keyboard_buffer[];
+extern volatile uint32_t keyboard_buffer_head;
+extern volatile uint32_t keyboard_buffer_tail;
 static int cursor_row;
 static int cursor_col;
 static char kernel_log[KLOG_SIZE];
@@ -34,6 +39,14 @@ static void serial_write(const char* str) {
     }
 }
 
+static void terminal_sync_cursor(void) {
+    uint16_t pos = (uint16_t)(cursor_row * VGA_WIDTH + cursor_col);
+    outb(VGA_CRTC_INDEX, 0x0F);
+    outb(VGA_CRTC_DATA, (uint8_t)(pos & 0xFF));
+    outb(VGA_CRTC_INDEX, 0x0E);
+    outb(VGA_CRTC_DATA, (uint8_t)((pos >> 8) & 0xFF));
+}
+
 static void terminal_clear(void) {
     uint16_t* vga = (uint16_t*)VGA_ADDRESS;
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
@@ -41,6 +54,7 @@ static void terminal_clear(void) {
     }
     cursor_row = 0;
     cursor_col = 0;
+    terminal_sync_cursor();
 }
 
 static void terminal_scroll(void) {
@@ -60,6 +74,7 @@ static void terminal_newline(void) {
     cursor_col = 0;
     cursor_row++;
     if (cursor_row >= VGA_HEIGHT) terminal_scroll();
+    terminal_sync_cursor();
 }
 
 static void terminal_put_char(char c) {
@@ -85,12 +100,17 @@ static void terminal_put_char(char c) {
             return;
         }
         vga[cursor_row * VGA_WIDTH + cursor_col] = (uint16_t)' ' | (uint16_t)0x0F << 8;
+        terminal_sync_cursor();
         return;
     }
 
     vga[cursor_row * VGA_WIDTH + cursor_col] = (uint16_t)c | (uint16_t)0x0F << 8;
     cursor_col++;
-    if (cursor_col >= VGA_WIDTH) terminal_newline();
+    if (cursor_col >= VGA_WIDTH) {
+        terminal_newline();
+    } else {
+        terminal_sync_cursor();
+    }
 }
 
 static void terminal_write(const char* str) {
@@ -174,9 +194,12 @@ void syscall_handler(struct regs *r) {
         serial_write(str);
     } 
     else if (syscall_num == 2) { /* sys_stdin_read */
-        volatile char* key_ptr = (volatile char*)0x9000;
-        r->eax = (uint32_t)*key_ptr;
-        if (*key_ptr != 0) *key_ptr = 0;
+        if (keyboard_buffer_head == keyboard_buffer_tail) {
+            r->eax = 0;
+        } else {
+            r->eax = (uint32_t)keyboard_buffer[keyboard_buffer_tail];
+            keyboard_buffer_tail = (keyboard_buffer_tail + 1) % 256;
+        }
     }
     else if (syscall_num == 3) { /* sys_clear */
         terminal_clear();

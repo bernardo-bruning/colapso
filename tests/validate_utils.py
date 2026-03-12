@@ -48,7 +48,7 @@ def send_monitor_command(proc, command):
 
 
 def type_text(proc, text):
-    keymap = {" ": "spc", ".": "dot"}
+    keymap = {" ": "spc", ".": "dot", ",": "comma"}
     for ch in text:
         send_monitor_command(proc, f"sendkey {keymap.get(ch, ch)}")
 

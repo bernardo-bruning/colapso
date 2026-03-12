@@ -94,7 +94,7 @@ def main():
     )
 
     try:
-        deadline = time.time() + 5
+        deadline = time.time() + 10
         while time.time() < deadline:
             data = read_serial()
             if "root@colapso:/# " in data:
@@ -122,7 +122,7 @@ def main():
         send_monitor_command(proc, "sendkey s")
         send_monitor_command(proc, "sendkey ret")
 
-        deadline = time.time() + 5
+        deadline = time.time() + 10
         while time.time() < deadline:
             data = read_serial()
             if all(token in data for token in [

@@ -41,7 +41,7 @@ entries = [
     create_entry("bin/write", 370, 2, 1),
     create_entry("bin/date", 380, 2, 1),
     create_entry("bin/env", 390, 2, 1),
-    create_entry("bin/edit", 400, 2, 1),
+    create_entry("bin/edit", 400, 8, 1),
     create_entry("MANUAL.txt", 90, 1, 0),
 ]
 
